@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Neurograph</title>
+<style type="text/css">
+canvas {
+    border: 1px dotted black;
+}
+</style>
+
+    </head>
+    <body>
+        <canvas id="canvas" width="1000" height="600">
+            This text is displayed if your browser does not support HTML5 Canvas.
+        </canvas>
+
+<script type="text/javascript" src="nodes.js"></script>
+
+<script>
+
+(function() {
+    // Init canvas
+
+    var canvas = document.getElementById("canvas");
+    var ctx = canvas.getContext("2d");
+    ctx.font = "20px Garamond";
+    var canvas_width = document.getElementById("canvas").width;
+    var canvas_height = document.getElementById("canvas").height;
+
+    var mouse_x, mouse_y;
+    var node_height = 20;
+    var select_radius = 100;
+
+    function Node(string) {
+        this.string = string;
+        // x, y = center of text
+        var width = ctx.measureText(string).width;
+        this.x = Math.random() * (canvas_width - width) + width / 2;
+        this.y = Math.random() * (canvas_height - node_height) + node_height / 2;
+        this.connections = {};
+    }
+
+    // Parse nodes.js
+
+    var target_node_str = null;
+    var nodes = {};
+    link_pairs.forEach(function(link_pair) {
+        if(!nodes[link_pair[0]])
+            nodes[link_pair[0]] = new Node(link_pair[0]);
+        if(!nodes[link_pair[1]])
+            nodes[link_pair[1]] = new Node(link_pair[1]);
+        nodes[link_pair[0]].connections[link_pair[1]] = 1;
+        nodes[link_pair[1]].connections[link_pair[0]] = 1;
+    });
+
+    function draw() {
+        ctx.clearRect(0,0,1000,600);
+
+        ctx.fillStyle = '#000000';
+        // ctx.fillText('target_node_str: ' + target_node_str, 10, 20);
+
+        Object.keys(nodes).forEach(function(node_str) {
+            var width = ctx.measureText(node_str).width;
+
+            var hex_str = null;
+            if(target_node_str === node_str)
+                hex_str = '#ff0000';
+            else {
+                var strength = 1;
+                if(target_node_str)
+                    strength = nodes[target_node_str].connections[node_str] || .1;
+                var hex_comp = Math.round((1 - strength) * 255).toString(16);
+                if(hex_comp.length == 1)
+                    hex_comp = '0' + hex_comp;
+                hex_str = '#' + hex_comp + hex_comp + hex_comp;
+            }
+            ctx.fillStyle = hex_str;
+            var node = nodes[node_str];
+            ctx.fillText(node_str, node.x - width / 2, node.y + node_height / 2);
+        });
+
+        // ctx.beginPath();
+        // ctx.arc(mouse_x, mouse_y, select_radius, 0, 2 * Math.PI, false);
+        // ctx.stroke();
+
+        window.requestAnimationFrame(draw);
+    }
+
+    window.requestAnimationFrame(draw);
+
+
+
+    canvas.addEventListener('mousemove', function(e) {
+        mouse_x = e.offsetX;
+        mouse_y = e.offsetY;
+
+        var sorted_nodes = [];
+        Object.keys(nodes).forEach(function(node_str) {
+            sorted_nodes.push(nodes[node_str]);
+        });
+        sorted_nodes.sort(function(a, b) {
+            var d1 = Math.sqrt((mouse_x - a.x) ** 2 + (mouse_y - a.y) ** 2);
+            var d2 = Math.sqrt((mouse_x - b.x) ** 2 + (mouse_y - b.y) ** 2);
+            return d1 - d2
+        })
+        target_node_str = sorted_nodes[0].string;
+    }, false);
+})();
+</script>
+
+    </body>
+</html>
